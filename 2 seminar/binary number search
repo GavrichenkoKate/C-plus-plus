@@ -1,0 +1,42 @@
+#include <iostream>
+using namespace std;
+
+int main() {
+	int n;
+	cin >> n;
+	int A[size] = {};
+	for (int i = 0; i < n; i++) {
+		cin >> A[i];
+	}
+	int l = 0, r = n, x;
+	cin >> x;
+	while (r >= l) { 
+		int m = (l = r) / 2; 
+		if (A[m] == x) {
+			cout << x << endl;
+			break;
+		}
+		else if (A[m] < x) {
+			l = m + 1;
+		}
+		else {
+			r = m - l;
+		}
+	} 
+	//system("pause");
+	return 0;
+}
+/*int l = 0
+int r = n; 
+int mid;
+
+while (l < r) {
+	mid = (l + r) / 2; 
+	if (arr[mid] > key) r = mid; 
+	else l = mid + 1;
+}
+
+r--; 
+
+if (arr[r] == key) cout << "номер элемента " << key << " в массиве равен: " << r;
+else cout << "такого элемента в массиве нет";*/
