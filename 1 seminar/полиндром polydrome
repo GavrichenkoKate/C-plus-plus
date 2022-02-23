@@ -1,0 +1,18 @@
+#include <iostream>
+#include <cstring>
+usaing namespace std;
+
+int main() {
+	setlocale(LC_ALL, "rus");
+
+	char s[20];
+	while (true) {
+		cout << "Введите любое положительное число: ";
+		cin >> s;
+		bool poli = true;
+		for (unsigned i = 0; i <= strlen(s) / 2 + 1; i++)
+			if (!(poli = s[i] == s[strlen(s) - i - 1])) break;
+		cout << "число: " << (poli ? "" : "не ") << "палиндром" << endl;
+	}
+	return 0; 
+}
