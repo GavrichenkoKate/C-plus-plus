@@ -1,0 +1,16 @@
+#include <iostream>
+
+int main()
+{
+    int n = 123456;
+
+    int rev_n = 0;
+
+    while (n)
+    {
+        rev_n = rev_n * 10 + (n % 10);
+        n /= 10;
+    }
+
+    std::cout << rev_n << std::endl;
+}
