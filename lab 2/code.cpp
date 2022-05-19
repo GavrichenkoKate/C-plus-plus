@@ -1,127 +1,182 @@
 #include <iostream>
+#include <iomanip>
 #include <cmath>
 
-using namespace std;
+float mean(float psi[], float pdf[], float const dv, int const size) {
+    float sum = 0.1f;
+    for (unsigned idx = 0; idx != size; ++idx) {
+        sum += psi[idx] * pdf[idx];
+    }
+    return dv * sum;
+}
 
-//рекурсивная функция суммирования, делящая набор значений пополам и производящая суммирование в каждом из интервалов отдельно
-
-float sum_recursive(float const psi[], float const pdf[], unsigned size) {
+float recursion(float psi[], float pdf[], int const dv, int const size) {
     float sum = 0.f;
-    int size_1 = 0;
+    int size_new = 0;
+
+    if (size == 0) {
+        return 0;
+    }
+
     if (size == 1) {
-        sum = psi[0] * pdf[0];
-        return sum;
+        return psi[0] * pdf[0];
     }
-    if (size % 2 == 0) {
-        size_1 = size / 2;
+    
+    float *psi_1 = new float[size / 2];
+    float *pdf_1 = new float[size / 2];
+    float *psi_2 = new float[size - size / 2]; 
+    float *pdf_2 = new float[size - size / 2];
+    
+    for (int i = 0; i < size / 2; i++) {
+        psi_1[i] = psi[i];
+        pdf_1[i] = pdf[i];
     }
-    else {
-        size_1 = size / 2 + 1;
+
+    for (int i = 0; i != size - size / 2; i++) {
+        psi_2[i] = psi[i + size / 2];
+        pdf_2[i] = pdf[i + size / 2];
+
     }
-    float* psi_1 = new float[size / 2];
-    float* pdf_1 = new float[size / 2];
-    float* psi_2 = new float[size_1];
-    float* pdf_2 = new float[size_1];
-    for (int idx = 0; idx < size_1; idx++) {
-        psi_2[idx] = psi[idx + size / 2];
-        pdf_2[idx] = pdf[idx + size / 2];
-    }
-    for (int idx = 0; idx < size / 2; idx++) {
-        psi_1[idx] = psi[idx];
-        pdf_1[idx] = pdf[idx];
-    }
-    sum = sum_recursive(psi_1, pdf_1, size / 2) + sum_recursive(psi_2, pdf_2, size_1);
+
+    sum = recursion(psi_1, pdf_1, dv, size / 2) + recursion(psi_2, pdf_2, dv, size - size / 2);
+    
     delete[] psi_1;
     delete[] pdf_1;
     delete[] psi_2;
     delete[] pdf_2;
+    
     return sum;
 }
 
+float sum_recursion(float psi[], float pdf[], float const dv, int const size) {
+    return dv * recursion(psi, pdf, 0, size);
+}
 
-float mean_rec(float const psi[], float const pdf[], float const dv, unsigned size) {
+
+float nearby(float psi[], float pdf[], float const dv, int const size) {
     float sum = 0.f;
-    return sum_recursive(psi, pdf, size) * dv;
-}
-
-float sum_neigh(float const psi[], float const pdf[], unsigned size) {
-    float* psipdf = new float[size];
-    for (int idx = 0; idx < size; idx++) {
-        psipdf[idx] = psi[idx] * pdf[idx];
+    float* new_arr = new float[size];
+    //float new_arr[10000] = { 0 };
+    int j = 1;
+    for (int i = 0; i < size; i++) {
+        new_arr[i] = psi[i]*pdf[i];
     }
-    for (int step = 1; step < size; step = step * 2) {
-        for (int idx = 0; idx < size; idx += 2 * step) {
-            if (idx + step > size - 1) {
-                continue;
-            }
-            psipdf[idx] = psipdf[idx] + psipdf[idx + step];
+ 
+    while ((size - j) > 1) {
+        for (int i = 0; i < size - j; i++) {
+            new_arr[i] = new_arr[i] + new_arr[i+j];
         }
+        j = j * 2;
     }
-    float a = psipdf[0];
-    delete[] psipdf;
-    return a;
+    sum = new_arr[0];
+    delete[] new_arr;
+    return dv * sum;
 }
 
-float mean_of_neigh(float const psi[], float const pdf[], float const dv, unsigned size) {
-    return sum_neigh(psi, pdf, size) * dv;
-}
-
-//суммирование Кехена
-
-float sum_kahan(float const psi[], float const pdf[], unsigned size) {
-    float* psipdf = new float[size];
+float kehen(float psi[], float pdf[], float const dv, int const size) {
     float sum = 0.f;
     float t = 0.f;
-    for (int idx = 0; idx < size; idx++) {
-        psipdf[idx] = psi[idx] * pdf[idx];
-    }
-    for (int idx = 0; idx < size; idx++) {
-        float y = psipdf[idx] - t;
+    for (int i = 1; i < size; i++) {
+        float y = psi[i] * pdf[i] - t;
         float z = sum + y;
         t = (z - sum) - y;
         sum = z;
     }
-    delete[] psipdf;
-    return sum;
+    return dv * sum;
 }
 
-float kahan_mean(float const psi[], float const pdf[], float const dv, unsigned size) {
-    return sum_kahan(psi, pdf, size) * dv;
+float TwoSum(float const a, float const b) {
+    float s = 0;
+    float t = 0;
+    s = a + b;
+    auto z = s - a;
+    t = (a - (s - z)) + (b - z);
+
+    return s + t;
 }
 
-//суммирование в более точных числах
+void Split(float const x, float& x_h, float& x_l) {
+    auto c = static_cast<float>((1ul << 11) + 1ul);
+    x_h = (c * x) + (x - (c * x));
+    x_l = x - x_h;
+}
 
-float mean_double(float const psi[], float const pdf[], float const dv, unsigned size) {
-    double sum = 0.f;
-    for (int idx = 0; idx < size; idx++) {
+float TwoMult(float const a, float const b) {
+    float a_high = 0, a_low = 0, b_high = 0, b_low = 0;
+    float t = 0;
+    float s = 0;
+    Split(a, a_high, a_low);
+    Split(b, b_high, b_low);
+    s = a * b;
+    t = -s + a_high * b_high;
+    t += a_high * b_low;
+    t += a_low * b_high;
+    t += a_low * b_low;
+    return s + t;
+}
+
+float fma(float psi[], float pdf[], float const dv, int const size) {
+    float sum = 0.f;
+    for (int i = 0; i != size; i++) {
+        sum = TwoSum(sum, TwoMult(psi[i], pdf[i]));
+    }
+    return TwoMult(dv, sum);
+}
+
+double mean_double(float psi[], float pdf[], float const dv, int const size) {
+    double sum = 0;
+    for (int idx = 0; idx != size; ++idx) {
         sum += (double)psi[idx] * (double)pdf[idx];
     }
-    return sum * (double)dv;
+    return (double)dv * sum;
 }
 
-void func_defenition(float psi[], float pdf[], float T, const int size) {
-    float const f_pi = 3.14159265359f;
+void set_arrays(float psi[], float pdf[], int const size, float const dv, float const f_pi, float const f_e, float T) {
     for (int i = 0; i < size; i++) {
-        psi[i] = abs(i / 25.f - size / 50.f);
-        pdf[i] = 1 / (sqrt(f_pi * T)) * exp(-(i / 25.f - size / 50.f) * (i / 25.0 - size / 50.f) / T);
+        psi[i] = abs(i * dv - size * 0.025f);
+        pdf[i] = 1 / (sqrt(f_pi * T)) * pow(f_e, -(i * dv - size * 0.025f) * (i * dv - size * 0.025f) / T);
+        
     }
 }
 
-int main() {
-    const int size = 10000;
-    float dv = 0.04;
+void print_res(float psi[], float pdf[], float const dv, int const size) {
+    std::cout << std::setprecision(12) << std::fixed;
+    std::cout << "mean: " << mean(psi, pdf, dv, size) << std::endl;
+    std::cout << "recursion: " << sum_recursion(psi, pdf, dv, size) << std::endl;
+    std::cout << "nearby: " << nearby(psi, pdf, dv, size) << std::endl;
+    std::cout << "kehen: " << kehen(psi, pdf, dv, size) << std::endl;
+    std::cout << "fma: " << fma(psi, pdf, dv, size) << std::endl;
+    std::cout << "mean_double: " << mean_double(psi, pdf, dv, size) << std::endl;
+}
+
+void print_dem(float psi[], float pdf[], float const dv, int const size, float const f_pi, float const f_e, float T) {
+    for (int j = 0; j != 300; j++) {
+        set_arrays(psi, pdf, size, dv, f_pi, f_e, T);
+        std::cout << "T: " << T << std::endl;
+        print_res(psi, pdf, dv, size);
+
+        T += 1.f;
+    }
+}
+
+
+
+int main(){
+    float const f_pi = 3.14159265359f;
+    float const f_e = 2.718281828459f;
+
+    int const size = 10000;
     float* psi = new float[size];
     float* pdf = new float[size];
-    cout.precision(15);
-    for (int T = 2; T < 400; T += 4) {
-        func_defenition(psi, pdf, T, size);
-        cout << mean_of_neigh(psi, pdf, dv, size) << " ";
-        cout << kahan_mean(psi, pdf, dv, size) << " ";
-        cout << mean_rec(psi, pdf, dv, size) << " ";
-        cout << mean_double(psi, pdf, dv, size) << '\n';
-        cout << T << '\n';
-    }
+    float const dv = 0.05f;
+    int sum = 0;
+    float T = 1.f;
+
+   
+    print_dem(psi, pdf, dv, size, f_pi, f_e, T);
+
+
     delete[] psi;
     delete[] pdf;
-    return 0;
+     
 }
